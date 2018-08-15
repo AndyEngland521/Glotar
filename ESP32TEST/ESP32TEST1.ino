@@ -1,15 +1,13 @@
-#define FASTLED_ALLOW_INTERRUPTS 0
 #include "FastLED.h"
 
 // How many leds in your strip?
 #define NUM_LEDS_LOWER 315
 #define NUM_LEDS_NECK 600
 #define NUM_LEDS_PLATE 672
-#define TOTAL_LEDS  NUM_LEDS_LOWER + NUM_LEDS_PLATE + NUM_LEDS_NECK
 
 #define DATA_PIN 23
-#define DATA_PIN_2 13
-#define DATA_PIN_3 18
+#define DATA_PIN_2 18
+#define DATA_PIN_3 13
 
 // Define the array of leds
 CRGB ledsLower[NUM_LEDS_LOWER];
@@ -31,38 +29,29 @@ int oldRedFrequency = 3;
 int oldGreenFrequency = 4;
 int oldBlueFrequency = 5;
 
+#define buttonPin 0
+int buttonState = 0;
+int lastButtonState = 0;
+
 void setup() { 
 	Serial.begin(115200);
 	Serial.println("resetting");
+  pinMode(buttonPin, INPUT);
 	LEDS.addLeds<WS2812,DATA_PIN,GRB>(ledsLower, NUM_LEDS_LOWER);
   LEDS.addLeds<WS2812,DATA_PIN_2,GRB>(ledsNeck, NUM_LEDS_NECK);
   LEDS.addLeds<WS2812,DATA_PIN_3,GRB>(ledsPlate, NUM_LEDS_PLATE);
-  FastLED.setBrightness(32);
+  FastLED.setBrightness(64);
   randomSeed(analogRead(4));
-  powerDistro();
 }
 
-void powerDistro()
+void buttonRead ()
 {
-  uint8_t universe;
-  for (int led = 0; led < TOTAL_LEDS; led++)
+  buttonState = analogRead(buttonPin);
+  if (buttonState != lastButtonState)
   {
-    universe = led / 170;
-    CRGB color = CHSV(48 * universe, 255, 255);
-    if(led < NUM_LEDS_LOWER)
-    {
-      ledsLower[led] = color;
-    }
-    else if(led < NUM_LEDS_LOWER + NUM_LEDS_PLATE)
-    {
-      ledsPlate[led - NUM_LEDS_LOWER] = color;
-    }
-    else
-    {
-      ledsNeck[led - (NUM_LEDS_LOWER + NUM_LEDS_PLATE)] = color;
-    }
+    frequencyShuffler();
   }
-  FastLED.show();
+  lastButtonState = buttonState;
 }
 
 void stackSines ()
@@ -82,13 +71,13 @@ void stackSines ()
       NUM_LEDS = NUM_LEDS_PLATE;
       break;
     }
-    //CRGB ledHolder[NUM_LEDS];
     for (uint16_t ledPosition = 0; ledPosition < NUM_LEDS; ledPosition++)
     {
+      buttonRead();
       offset = (ledPosition / 4) + rotation;
-      uint8_t redAmplitude = cubicwave8(offset * newRedAmplitude);
+      /*uint8_t redAmplitude = cubicwave8(offset * newRedAmplitude);
       uint8_t greenAmplitude = cubicwave8(offset * newGreenAmplitude);
-      uint8_t blueAmplitude = cubicwave8(offset * newBlueAmplitude);
+      uint8_t blueAmplitude = cubicwave8(offset * newBlueAmplitude);*/
       uint8_t redFrequency = cubicwave8(offset * newRedFrequency);
       uint8_t greenFrequency = cubicwave8(offset * newGreenFrequency);
       uint8_t blueFrequency = cubicwave8(offset * newBlueFrequency);
@@ -103,10 +92,6 @@ void stackSines ()
         case 2:
         ledsPlate[ledPosition] = CRGB(newRedAmplitude * redFrequency, newGreenAmplitude * greenFrequency, newBlueAmplitude * blueFrequency);
         break;
-      }
-      if (offset == 0 && ledPosition == 0)
-      {
-        frequencyShuffler();
       }
     }
   }
@@ -140,43 +125,47 @@ void frequencyShuffler()
       break;
     }
   }
-}
-
-void hueSat()
-{
-  uint16_t hue = 0;
-  uint8_t sat = 255;
-  int theDirection = -1;
-  while(true)
+  /*do
   {
-    if (hue > 255)
+  for (int strip = 0; strip < 3; strip++)
+  {
+    uint16_t NUM_LEDS;
+    switch (strip)
     {
-      sat -= 5;
-      hue = 0;
+      case 0:
+      NUM_LEDS = NUM_LEDS_LOWER;
+      break;
+      case 1:
+      NUM_LEDS = NUM_LEDS_NECK;
+      break;
+      case 2:
+      NUM_LEDS = NUM_LEDS_PLATE;
+      break;
     }
-    CRGB color = CHSV(hue, sat, 255);
-    for (int led = 0; led < TOTAL_LEDS; led++)
+    CRGB ledHolder[NUM_LEDS];
+    for (uint16_t ledPosition = 0; ledPosition < NUM_LEDS - shift; ledPosition++)
     {
-      if(led < NUM_LEDS_LOWER)
-      {
-        ledsLower[led] = color;
-      }
-      else if(led < NUM_LEDS_LOWER + NUM_LEDS_PLATE)
-      {
-        ledsPlate[led - NUM_LEDS_LOWER] = color;
-      }
-      else
-      {
-        ledsNeck[led - (NUM_LEDS_LOWER + NUM_LEDS_PLATE)] = color;
-      }
+      offset = (ledPosition / 4) + rotation;
+      uint8_t redOffset = cubicwave8(offset * oldRedAmplitude);
+      uint8_t greenOffset = cubicwave8(offset * oldGreenAmplitude);
+      uint8_t blueOffset = cubicwave8(offset * oldBlueAmplitude);
+      ledHolder[ledPosition] = CRGB(cubicwave8(redOffset), cubicwave8(greenOffset), cubicwave8(blueOffset));
     }
+    for (uint16_t ledPosition = NUM_LEDS - shift; ledPosition < NUM_LEDS; ledPosition++)
+    {
+      offset = (ledPosition / 4) + rotation;
+      uint8_t redOffset = cubicwave8(offset * newRedAmplitude);
+      uint8_t greenOffset = cubicwave8(offset * newGreenAmplitude);
+      uint8_t blueOffset = cubicwave8(offset * newBlueAmplitude);
+      ledHolder[ledPosition] = CRGB(cubicwave8(redOffset), cubicwave8(greenOffset), cubicwave8(blueOffset));
+    }
+    rotation++;
+    shift += 4;
     FastLED.show();
-    hue += 16;
-    //delay(10);
-  }
+    delay(30);
+  } while (shift != 300);*/
 }
 
 void loop() { 
 	stackSines();
-	//hueSat();
 }
