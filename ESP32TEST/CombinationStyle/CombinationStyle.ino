@@ -1,9 +1,27 @@
 //Using Sam Guyers version of FastLED found here: https://github.com/samguyer/FastLED
-#include "FastLED.h"
+#include <FastLED.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <ArtnetWifi.h>
 
+uint8_t rotation = 0;
+uint8_t offset;
+float newRedAmplitude = 3;
+float newGreenAmplitude = 4;
+float newBlueAmplitude = 5;
+float oldRedAmplitude = 3;
+float oldGreenAmplitude = 4;
+float oldBlueAmplitude = 5;
+int newRedFrequency = 3;
+int newGreenFrequency = 4;
+int newBlueFrequency = 5;
+int oldRedFrequency = 3;
+int oldGreenFrequency = 4;
+int oldBlueFrequency = 5;
+
+#define buttonPin 0
+int buttonState = 0;
+int lastButtonState = 0;
 
 //Wifi settings
 char ssid[] = "NECTARKATZ_5GHz";
@@ -25,6 +43,7 @@ char password[] = "garrettiscuffed";
 const int numLeds = NUM_LEDS_LOWER + NUM_LEDS_NECK + NUM_LEDS_PLATE + NUM_LEDS_RIM; // change for your setup
 const int numberOfChannels = numLeds * 3; // Total number of channels you want to receive (1 led = 3 channels)
 
+uint8_t hue = 0;
 // Define the array of leds
 CRGB ledsLower[NUM_LEDS_LOWER];
 CRGB ledsNeck[NUM_LEDS_NECK];
@@ -46,7 +65,7 @@ boolean ConnectWifi(void)
 
   WiFi.begin(ssid, password);
   Serial.println("");
- Serial.println("Connecting to WiFi");
+  Serial.println("Connecting to WiFi");
   
   // Wait for connection
   Serial.print("Connecting");
@@ -54,9 +73,11 @@ boolean ConnectWifi(void)
     delay(500);
     if (i > 20){
       state = false;
+      //fill(CHSV(hue, 255, 255));
       break;
     }
     i++;
+    hue += 20;
   }
   
   return state;
@@ -104,38 +125,111 @@ int wifiStatus()
   }
 }
 
-uint8_t rotation = 0;
-uint8_t offset;
-float newRedAmplitude = 3;
-float newGreenAmplitude = 4;
-float newBlueAmplitude = 5;
-float oldRedAmplitude = 3;
-float oldGreenAmplitude = 4;
-float oldBlueAmplitude = 5;
-int newRedFrequency = 3;
-int newGreenFrequency = 4;
-int newBlueFrequency = 5;
-int oldRedFrequency = 3;
-int oldGreenFrequency = 4;
-int oldBlueFrequency = 5;
-
-#define buttonPin 0
-int buttonState = 0;
-int lastButtonState = 0;
-
 void setup() { 
   pinMode(buttonPin, INPUT);
 	LEDS.addLeds<WS2812,DATA_PIN,GRB>(ledsLower, NUM_LEDS_LOWER);
   LEDS.addLeds<WS2812,DATA_PIN_2,GRB>(ledsNeck, NUM_LEDS_NECK);
   LEDS.addLeds<WS2812,DATA_PIN_3,GRB>(ledsPlate, NUM_LEDS_PLATE);  
   LEDS.addLeds<WS2812,DATA_PIN_4,GRB>(ledsRim, NUM_LEDS_RIM);
+  off();
+  delay(3000);
   ConnectWifi();
+  off();
   artnet.begin();
   // onDmxFrame will execute every time a packet is received by the ESP32
   artnet.setArtDmxCallback(onDmxFrame);
   FastLED.setBrightness(32);
   randomSeed(analogRead(4));
 }
+
+void off ()
+{
+  for (int strip = 0; strip < 4; strip++)
+  {
+    uint16_t NUM_LEDS;
+    switch (strip)
+    {
+      case 0:
+      NUM_LEDS = NUM_LEDS_LOWER;
+      break;
+      case 1:
+      NUM_LEDS = NUM_LEDS_NECK;
+      break;
+      case 2:
+      NUM_LEDS = NUM_LEDS_PLATE;
+      break;
+      case 3:
+      NUM_LEDS = NUM_LEDS_RIM;
+      break;
+    }
+    for (uint16_t ledPosition = 0; ledPosition < NUM_LEDS; ledPosition++)
+    {
+      buttonRead();
+      switch (strip)
+      {
+        case 0:
+        ledsLower[ledPosition] = CRGB(0, 0, 0);
+        break;
+        case 1:
+        ledsNeck[ledPosition] = CRGB(0, 0, 0);
+        break;
+        case 2:
+        ledsPlate[ledPosition] = CRGB(0, 0, 0);
+        break;
+        case 3:
+        ledsRim[ledPosition] = CRGB(0, 0, 0);
+        break;
+      }
+    }
+  }
+  FastLED.show();
+  delay(5);
+}
+
+/*void fill (CRGB color)
+{
+  for (int strip = 0; strip < 4; strip++)
+  {
+    uint16_t NUM_LEDS;
+    switch (strip)
+    {
+      case 0:
+      NUM_LEDS = NUM_LEDS_LOWER;
+      break;
+      case 1:
+      NUM_LEDS = NUM_LEDS_NECK;
+      break;
+      case 2:
+      NUM_LEDS = NUM_LEDS_PLATE;
+      break;
+      case 3:
+      NUM_LEDS = NUM_LEDS_RIM;
+      break;
+    }
+    for (uint16_t ledPosition = 0; ledPosition < NUM_LEDS; ledPosition++)
+    {
+      buttonRead();
+      switch (strip)
+      {
+        case 0:
+        ledsLower[ledPosition] = color;
+        break;
+        case 1:
+        ledsNeck[ledPosition] = color;
+        break;
+        case 2:
+        ledsPlate[ledPosition] = color;
+        break;
+        case 3:
+        ledsRim[ledPosition] = color;
+        break;
+      }
+    }
+  }
+  FastLED.show();
+  delay(5);
+}
+*/
 
 void buttonRead ()
 {

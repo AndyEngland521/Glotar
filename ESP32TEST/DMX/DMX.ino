@@ -4,9 +4,11 @@
 #include "FastLED.h"
 
 //Wifi settings
-char ssid[] = "NECTARKATZ_5GHz";
-char password[] = "garrettiscuffed ";
-char* editString;
+const char* ssid = "NECTARKATZ_5GHZ";
+const char* password = "garrettiscuffed";
+
+WiFiUDP UdpSend;
+ArtnetWifi artnet;
 
 // LED Strips
 const int numLeds = 1500; // change for your setup
@@ -21,13 +23,14 @@ const int numberOfChannels = numLeds * 3; // Total number of channels you want t
 #define DATA_PIN 23
 #define DATA_PIN_2 18
 #define DATA_PIN_3 13
+#define DATA_PIN_4 19
+
 
 CRGB ledsLower[NUM_LEDS_LOWER];
 CRGB ledsNeck[NUM_LEDS_NECK];
 CRGB ledsPlate[NUM_LEDS_PLATE];
 
 // Artnet settings
-ArtnetWifi artnet;
 const int startUniverse = 0;
 
 bool sendFrame = 1;
@@ -41,19 +44,31 @@ boolean ConnectWifi(void)
 
   WiFi.begin(ssid, password);
   Serial.println("");
- Serial.println("Connecting to WiFi");
+  Serial.println("Connecting to WiFi");
   
   // Wait for connection
   Serial.print("Connecting");
-    while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    if (i > 20){
-      state = false;
-      break;
+    while (WiFi.status() != WL_CONNECTED) 
+    {
+      delay(500);
+      if (i > 20)
+      {
+        state = false;
+        Serial.print(".");
+        break;
+      }
+      i++;
     }
-    i++;
+  if (state) {
+    Serial.println("");
+    Serial.print("Connected to ");
+    Serial.println(ssid);
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("");
+    Serial.println("Connection failed.");
   }
-  
   return state;
 }
 
@@ -105,7 +120,10 @@ void setup()
   LEDS.addLeds<WS2812,DATA_PIN,GRB>(ledsLower, NUM_LEDS_LOWER);
   LEDS.addLeds<WS2812,DATA_PIN_2,GRB>(ledsNeck, NUM_LEDS_NECK);
   LEDS.addLeds<WS2812,DATA_PIN_3,GRB>(ledsPlate, NUM_LEDS_PLATE);
-  ConnectWifi();
+  if (ConnectWifi())
+  {
+    Serial.print("connected");
+  }
   artnet.begin();
   // onDmxFrame will execute every time a packet is received by the ESP32
   artnet.setArtDmxCallback(onDmxFrame);
