@@ -77,7 +77,7 @@ boolean ConnectWifi(void)
   return state;
 }
 
-/*void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
+void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
 {
   sendFrame = 1;
   int offset;
@@ -106,10 +106,10 @@ boolean ConnectWifi(void)
     }
   }
   previousDataLength = length;
-}*/
+}
 
 
-void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
+/*void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
 {
   boolean tail = false;
   
@@ -140,7 +140,7 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
   }
   Serial.print("Time: ");
   Serial.println(millis() - startTime);
-}
+}*/
 
 void setup()
 {
