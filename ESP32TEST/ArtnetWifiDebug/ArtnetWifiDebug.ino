@@ -77,7 +77,7 @@ boolean ConnectWifi(void)
   return state;
 }
 
-void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
+/*void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
 {
   sendFrame = 1;
   int offset;
@@ -106,12 +106,12 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
     }
   }
   previousDataLength = length;
-}
+}*/
 
-
-/*void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
+void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
 {
-  boolean tail = false;
+  startTime = millis();
+  /*boolean tail = false;
   
   Serial.print("DMX: Univ: ");
   Serial.print(universe, DEC);
@@ -119,12 +119,28 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
   Serial.print(sequence, DEC);
   Serial.print(", Data (");
   Serial.print(length, DEC);
-  Serial.print("): ");
-  for (int dataPosition = 0; dataPosition < (length / 3); dataPosition++)
-  {
-    int offset = dataPosition * 3;
-    //ledsLower[dataPosition] = CRGB(data[offset], data[offset + 1], data[offset + 2]);
-  }
+  Serial.print("): ");*/
+  int led = universe * 170;
+   if (led < NUM_LEDS_LOWER && (led / NUM_LEDS_LOWER) != 0)
+    {
+      memcpy(ledsLower, data, 510);
+      //ledsLower[led] = CRGB(data[offset], data[offset + 1], data[offset + 2]);
+    }
+    /*else if (led < NUM_LEDS_LOWER && (led / NUM_LEDS_LOWER) != 0)
+    {
+      memcpy(ledsLower, data, 510);
+    }
+    else if (led < NUM_LEDS_NECK + NUM_LEDS_LOWER)
+    {  
+      memcpy(ledsNeck, data, 510);
+      //ledsNeck[led - NUM_LEDS_LOWER] = CRGB(data[offset], data[offset + 1], data[offset + 2]);
+    }
+    else if (led < NUM_LEDS_NECK + NUM_LEDS_LOWER + NUM_LEDS_PLATE)
+    {  
+      memcpy(ledsPlate, data, 510);
+      //ledsPlate[led - (NUM_LEDS_NECK + NUM_LEDS_LOWER )] = CRGB(data[offset], data[offset + 1], data[offset + 2]);
+    }*/
+  /*memcpy(ledsLower, data, 510);
   if (length > 16) {
     length = 16;
     tail = true;
@@ -137,10 +153,14 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
   }
   if (tail) {
     Serial.print("...");
+  }*/
+  if(universe == 8){
+    FastLED.show();
+    Serial.print("Time: ");
+    Serial.println(millis() - startTime);
+    //WiFiUDP.flush();
   }
-  Serial.print("Time: ");
-  Serial.println(millis() - startTime);
-}*/
+}
 
 void setup()
 {
@@ -157,6 +177,6 @@ void setup()
 
 void loop()
 {
-  startTime = millis();
+  //startTime = millis();
   artnet.read();
 }

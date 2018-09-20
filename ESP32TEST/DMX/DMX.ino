@@ -4,25 +4,23 @@
 #include "FastLED.h"
 
 //Wifi settings
-const char* ssid = "NECTARKATZ_5GHZ";
+const char* ssid = "NECTARKATZ";
 const char* password = "garrettiscuffed";
+
+long startTime;
 
 WiFiUDP UdpSend;
 ArtnetWifi artnet;
 
-// LED Strips
-const int numLeds = 1500; // change for your setup
-const int numberOfChannels = numLeds * 3; // Total number of channels you want to receive (1 led = 3 channels)
-
 // How many leds in your strip?
 #define NUM_LEDS_LOWER 315
-#define NUM_LEDS_NECK 600
-#define NUM_LEDS_PLATE 672
+#define NUM_LEDS_NECK 672
+#define NUM_LEDS_PLATE 600
 #define TOTAL_LEDS = NUM_LEDS_LOWER + NUM_LEDS_NECK + NUM_LEDS_PLATE 
 
 #define DATA_PIN 23
-#define DATA_PIN_2 18
-#define DATA_PIN_3 13
+#define DATA_PIN_2 13
+#define DATA_PIN_3 18
 #define DATA_PIN_4 19
 
 
@@ -73,32 +71,31 @@ boolean ConnectWifi(void)
 }
 
 void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* data)
-{
-  sendFrame = 1;
-  // set brightness of the whole strip 
-  if (universe == 15)
-  {
-    FastLED.setBrightness(data[0]);
-  }
+{ 
+  int offset = (universe - startUniverse) * 170;
+  int led;
   // read universe and put into the right part of the display buffer
-  for (int i = 0; i < length / 3; i++)
+  for (int i = 0; i < 510; i += 3)
   {
-    int led = i + (universe - startUniverse) * (previousDataLength / 3);
+    led = (i / 3) + offset;
     if (led < NUM_LEDS_LOWER)
     {
-      ledsLower[led] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+      ledsLower[led] = CRGB(data[i], data[i + 1], data[i + 2]);
     }
     else if (led < NUM_LEDS_NECK + NUM_LEDS_LOWER)
     {  
-      ledsNeck[led - NUM_LEDS_LOWER] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+      ledsNeck[led - NUM_LEDS_LOWER] = CRGB(data[i], data[i + 1], data[i + 2]);
     }
     else if (led < NUM_LEDS_NECK + NUM_LEDS_LOWER + NUM_LEDS_PLATE)
     {  
-      ledsPlate[led - (NUM_LEDS_NECK + NUM_LEDS_LOWER )] = CRGB(data[i * 3], data[i * 3 + 1], data[i * 3 + 2]);
+      ledsPlate[led - (NUM_LEDS_NECK + NUM_LEDS_LOWER )] = CRGB(data[i], data[i + 1], data[i + 2]);
     }
   }
   previousDataLength = length;     
-  FastLED.show();
+  if(universe == 8){
+    FastLED.show();
+    UdpSend.flush();
+  }
 }
 
 //this function will write wifi status to different things based on what page it's on, maybe pass the page in as an argument?
@@ -120,6 +117,7 @@ void setup()
   LEDS.addLeds<WS2812,DATA_PIN,GRB>(ledsLower, NUM_LEDS_LOWER);
   LEDS.addLeds<WS2812,DATA_PIN_2,GRB>(ledsNeck, NUM_LEDS_NECK);
   LEDS.addLeds<WS2812,DATA_PIN_3,GRB>(ledsPlate, NUM_LEDS_PLATE);
+  FastLED.setBrightness(48);
   if (ConnectWifi())
   {
     Serial.print("connected");
@@ -127,9 +125,11 @@ void setup()
   artnet.begin();
   // onDmxFrame will execute every time a packet is received by the ESP32
   artnet.setArtDmxCallback(onDmxFrame);
+  
 }
 
 void loop()
-{   
+{ 
   artnet.read();
+  yield();
 }
