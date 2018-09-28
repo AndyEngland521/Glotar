@@ -4,8 +4,8 @@
 #include "FastLED.h"
 
 //Wifi settings
-const char* ssid = "NECTARKATZ";
-const char* password = "garrettiscuffed";
+const char* ssid = "//PREDATOR:drone_ctrl";
+const char* password = "thewifinetworkpassword?";
 
 long startTime;
 
@@ -18,10 +18,10 @@ ArtnetWifi artnet;
 #define NUM_LEDS_PLATE 600
 #define TOTAL_LEDS = NUM_LEDS_LOWER + NUM_LEDS_NECK + NUM_LEDS_PLATE 
 
-#define DATA_PIN 23
-#define DATA_PIN_2 13
-#define DATA_PIN_3 18
-#define DATA_PIN_4 19
+#define DATA_PIN 32
+#define DATA_PIN_2 27
+#define DATA_PIN_3 13
+#define DATA_PIN_4 33
 
 
 CRGB ledsLower[NUM_LEDS_LOWER];
@@ -90,8 +90,7 @@ void onDmxFrame(uint16_t universe, uint16_t length, uint8_t sequence, uint8_t* d
     {  
       ledsPlate[led - (NUM_LEDS_NECK + NUM_LEDS_LOWER )] = CRGB(data[i], data[i + 1], data[i + 2]);
     }
-  }
-  previousDataLength = length;     
+  }   
   if(universe == 8){
     FastLED.show();
     UdpSend.flush();
@@ -120,7 +119,7 @@ void setup()
   FastLED.setBrightness(48);
   if (ConnectWifi())
   {
-    Serial.print("connected");
+         Serial.print("connected");
   }
   artnet.begin();
   // onDmxFrame will execute every time a packet is received by the ESP32
